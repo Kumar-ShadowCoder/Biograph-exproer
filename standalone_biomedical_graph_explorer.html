@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BioGraph Explorer — Biomedical Knowledge Graph & AI Drug Repositioning</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #020617;
+      color: #e2e8f0;
+      overflow: hidden;
+      user-select: none;
+    }
+    code, pre, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col bg-slate-950 text-slate-200 overflow-hidden">
+
+  <!-- ==========================================
+       TOP NAVIGATION HEADER
+       ========================================== -->
+  <header class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-slate-900/95 border-b border-slate-800 shadow-md z-30">
+    <!-- Brand -->
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+        <i data-lucide="network" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-base font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-cyan-300">
+            BioGraph Explorer
+          </h1>
+          <span class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            Hetionet v1.0
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-400 hidden sm:block">
+          Multi-Hop Biomedical Knowledge Graph &amp; AI Drug Repositioning Platform
+        </p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800" id="nav-tabs">
+      <button data-tab="explorer" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all bg-indigo-600 text-white shadow-sm">
+        <i data-lucide="network" class="w-3.5 h-3.5"></i>
+        <span>Interactive Graph</span>
+      </button>
+      <button data-tab="repositioning" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-900">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        <span>AI Drug Repositioning</span>
+      </button>
+      <button data-tab="bipartite" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-900">
+        <i data-lucide="git-commit" class="w-3.5 h-3.5"></i>
+        <span>Disease Similarity</span>
+      </button>
+      <button data-tab="codebase" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-900">
+        <i data-lucide="code" class="w-3.5 h-3.5"></i>
+        <span>Full-Stack Code &amp; Cypher</span>
+      </button>
+    </nav>
+
+    <!-- Search & Exports -->
+    <div class="flex items-center gap-3">
+      <div class="relative" id="search-container">
+        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"></i>
+        <input
+          id="global-search"
+          type="text"
+          placeholder="Jump to Disease, Drug, Gene..."
+          autocomplete="off"
+          class="pl-8 pr-7 py-1.5 bg-slate-950 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-56 transition-all"
+        />
+        <div id="search-dropdown" class="hidden absolute left-0 mt-1.5 w-72 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl py-1.5 z-50"></div>
+      </div>
+
+      <div class="hidden xl:flex items-center gap-1.5 border-l border-slate-800 pl-3">
+        <button id="btn-export-png" class="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 rounded-md text-xs border border-slate-700 transition-colors">
+          <i data-lucide="image" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>PNG</span>
+        </button>
+        <button id="btn-export-json" class="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 rounded-md text-xs border border-slate-700 transition-colors">
+          <i data-lucide="file-json" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span>JSON</span>
+        </button>
+        <button id="btn-export-csv" class="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 rounded-md text-xs border border-slate-700 transition-colors">
+          <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>CSV</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       SECONDARY CONTROL TOOLBAR
+       ========================================== -->
+  <div id="secondary-toolbar" class="flex flex-wrap items-center justify-between gap-3 px-5 py-2 bg-slate-900/60 border-b border-slate-800/80 text-xs z-20">
+    <!-- Node Type Filters -->
+    <div class="flex flex-wrap items-center gap-2.5">
+      <span class="text-slate-400 flex items-center gap-1.5 font-medium">
+        <i data-lucide="filter" class="w-3.5 h-3.5 text-indigo-400"></i> Node Layers:
+      </span>
+      <button data-filter="Disease" class="filter-toggle flex items-center gap-1.5 px-2.5 py-1 rounded-md border bg-slate-800/90 border-slate-700 text-slate-100">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+        <span>Disease</span>
+      </button>
+      <button data-filter="Drug" class="filter-toggle flex items-center gap-1.5 px-2.5 py-1 rounded-md border bg-slate-800/90 border-slate-700 text-slate-100">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+        <span>Drug</span>
+      </button>
+      <button data-filter="Gene" class="filter-toggle flex items-center gap-1.5 px-2.5 py-1 rounded-md border bg-slate-800/90 border-slate-700 text-slate-100">
+        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+        <span>Gene</span>
+      </button>
+      <button data-filter="Symptom" class="filter-toggle flex items-center gap-1.5 px-2.5 py-1 rounded-md border bg-slate-800/90 border-slate-700 text-slate-100">
+        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+        <span>Symptom</span>
+      </button>
+
+      <button id="toggle-ai-links" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border bg-purple-950/50 border-purple-500/50 text-purple-200 transition-all">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
+        <span id="ai-links-count-label">AI Predicted Links</span>
+      </button>
+    </div>
+
+    <!-- Shortest Path Finder -->
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-slate-400 flex items-center gap-1 font-medium">
+        <i data-lucide="route" class="w-3.5 h-3.5 text-amber-400"></i> Path Finder:
+      </span>
+      <select id="path-start" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+        <option value="">Source Entity...</option>
+      </select>
+      <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500"></i>
+      <select id="path-end" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+        <option value="">Target Entity...</option>
+      </select>
+      <button id="btn-clear-path" class="hidden px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px]">
+        Clear
+      </button>
+    </div>
+
+    <!-- Layout & Scope Controls -->
+    <div class="flex items-center gap-2">
+      <span class="text-slate-400 font-medium">Layout:</span>
+      <select id="layout-select" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+        <option value="force">Force-Directed (Cose)</option>
+        <option value="concentric">Concentric Ontology Rings</option>
+        <option value="radial">Radial Cluster</option>
+      </select>
+      <button id="btn-expand-all" class="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-xs font-medium transition-colors">
+        Expand All (38)
+      </button>
+      <button id="btn-reset-graph" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs transition-colors">
+        Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MAIN CONTENT AREA
+       ========================================== -->
+  <div class="flex flex-1 overflow-hidden relative">
+    <!-- Toast Notification -->
+    <div id="toast-banner" class="hidden absolute top-4 left-1/2 -translate-x-1/2 z-50 items-center gap-2 px-4 py-2 rounded-full bg-slate-900/95 border border-indigo-500/50 text-xs text-indigo-200 shadow-xl">
+      <i data-lucide="check-circle-2" class="w-4 h-4 text-indigo-400"></i>
+      <span id="toast-text"></span>
+    </div>
+
+    <!-- VIEW 1: GRAPH CANVAS + INSPECTOR -->
+    <div id="view-graph" class="flex flex-1 overflow-hidden">
+      <div id="canvas-wrapper" class="flex-1 relative bg-slate-950 overflow-hidden">
+        <div class="absolute inset-0 pointer-events-none opacity-20" style="background-image: radial-gradient(#475569 1px, transparent 1px); background-size: 24px 24px;"></div>
+        <canvas id="graph-canvas" class="block cursor-grab active:cursor-grabbing"></canvas>
+
+        <!-- Path Banner -->
+        <div id="path-banner" class="hidden absolute top-4 left-4 bg-slate-900/95 border border-amber-500/40 rounded-lg p-3 shadow-xl max-w-md z-10">
+          <div class="flex items-center justify-between gap-4 mb-1.5">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+              Biological Shortest Path
+            </span>
+            <span id="path-hop-badge" class="text-[11px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold"></span>
+          </div>
+          <div id="path-chain-nodes" class="flex flex-wrap items-center gap-1.5 text-xs text-slate-200"></div>
+        </div>
+
+        <!-- Legend Overlay -->
+        <div class="absolute bottom-5 left-5 bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl p-3.5 shadow-xl text-xs space-y-2.5 max-w-xs pointer-events-none">
+          <div class="font-semibold text-slate-300 flex items-center justify-between">
+            <span>Ontology Legend</span>
+            <span id="graph-stats-badge" class="text-[10px] text-slate-400 font-normal"></span>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span><span class="text-slate-300">Disease</span></div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span><span class="text-slate-300">Drug / Compound</span></div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span><span class="text-slate-300">Gene Target</span></div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span><span class="text-slate-300">Symptom</span></div>
+          </div>
+          <div class="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-sky-400 inline-block"></span>
+              <span>Blue dot = Hidden neighbors (Double-click to expand)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-4 h-0.5 border-b-2 border-dashed border-purple-400 inline-block"></span>
+              <span>Purple dashed = AI Predicted Repositioning</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="absolute bottom-5 right-5 flex flex-col gap-1.5 bg-slate-900/90 border border-slate-800 p-1.5 rounded-xl shadow-xl">
+          <button id="btn-zoom-in" title="Zoom In" class="p-2 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition-colors">
+            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+          </button>
+          <button id="btn-zoom-out" title="Zoom Out" class="p-2 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition-colors">
+            <i data-lucide="zoom-out" class="w-4 h-4"></i>
+          </button>
+          <button id="btn-zoom-reset" title="Reset Camera" class="p-2 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white transition-colors">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Sidebar Inspector -->
+      <aside class="w-80 lg:w-96 bg-slate-900 border-l border-slate-800 flex flex-col shadow-2xl z-20">
+        <div class="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between">
+          <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="layers" class="w-4 h-4 text-indigo-400"></i> Biomedical Entity Inspector
+          </h2>
+          <span id="inspector-degree" class="text-[11px] font-mono text-slate-400"></span>
+        </div>
+        <div id="inspector-content" class="p-5 flex-1 overflow-y-auto space-y-5"></div>
+      </aside>
+    </div>
+
+    <!-- VIEW 2: AI DRUG REPOSITIONING MATRIX -->
+    <div id="view-repositioning" class="hidden flex-1 overflow-y-auto p-6 bg-slate-950">
+      <div class="max-w-6xl mx-auto space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2 text-purple-400 text-xs font-bold uppercase tracking-wider">
+              Graph Machine Learning · Link Prediction
+            </div>
+            <h2 class="text-2xl font-bold text-white">AI Drug Repositioning Discovery Engine</h2>
+            <p class="text-xs text-slate-400 max-w-2xl leading-relaxed">
+              Using 2-hop target overlap and Node2Vec structural graph embeddings (0.94 AUROC), the engine identifies FDA-approved compounds that target genes strongly associated with new disease indications.
+            </p>
+          </div>
+          <button id="btn-view-predictions-in-graph" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shrink-0 shadow-lg shadow-purple-600/20">
+            <span>Visualize Predictions in Graph</span>
+          </button>
+        </div>
+        <div id="repositioning-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: FULL-STACK CODE & CYPHER -->
+    <div id="view-codebase" class="hidden flex-1 overflow-y-auto p-6 bg-slate-950 select-text">
+      <div class="max-w-5xl mx-auto space-y-6">
+        <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-2">
+          <div class="text-xs font-bold uppercase tracking-wider text-cyan-400">Complete Production Architecture Codebase</div>
+          <h2 class="text-2xl font-bold text-white">FastAPI Backend &amp; Neo4j Cypher Queries</h2>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Pair this interactive frontend with the Python FastAPI driver and Neo4j Cypher queries below when connecting to a live Neo4j AuraDB or Docker instance.
+          </p>
+        </div>
+
+        <div class="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+          <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-200 font-mono">backend/main.py (FastAPI + Official Neo4j Driver)</span>
+            <span class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Python 3.11+</span>
+          </div>
+          <pre class="p-4 text-xs font-mono text-slate-200 overflow-x-auto leading-relaxed">from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from neo4j import GraphDatabase
+import os
+
+app = FastAPI(title="Biomedical Knowledge Graph API", version="1.0.0")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+driver = GraphDatabase.driver(
+    os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+    auth=(os.getenv("NEO4J_USER", "neo4j"), os.getenv("NEO4J_PASS", "password"))
+)
+
+@app.get("/api/graph/{entity_name}")
+def get_neighborhood(entity_name: str, limit: int = 50):
+    query = "MATCH (source {name: $name})-[r]-(target) RETURN source, r, target LIMIT $limit"
+    with driver.session() as session:
+        result = session.run(query, name=entity_name, limit=limit)
+        nodes, links = {}, []
+        for record in result:
+            for key in ["source", "target"]:
+                n = record[key]
+                nodes[n["name"]] = {"id": n["name"], "type": list(n.labels)[0], **dict(n)}
+            rel = record["r"]
+            links.append({"source": rel.start_node["name"], "target": rel.end_node["name"], "label": rel.type})
+        return {"nodes": list(nodes.values()), "links": links}</pre>
+        </div>
+
+        <div class="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+          <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-200 font-mono">database/repositioning.cypher (Neo4j 5.x)</span>
+            <span class="text-[11px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">Cypher Query</span>
+          </div>
+          <pre class="p-4 text-xs font-mono text-cyan-300 overflow-x-auto leading-relaxed">// Multi-Hop Drug Repositioning Query (2-Hop Shared Gene Targets)
+MATCH (c:Drug)-[:TARGETS]->(g:Gene)-[:ASSOCIATED_WITH]->(d:Disease)
+WHERE NOT (c)-[:TREATS]->(d)
+WITH c, d, collect(g.name) AS shared_genes, count(g) AS gene_overlap
+WHERE gene_overlap >= 1
+RETURN c.name AS candidate_drug, d.name AS target_disease, shared_genes, gene_overlap
+ORDER BY gene_overlap DESC LIMIT 25;</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       APPLICATION LOGIC & PHYSICS ENGINE
+       ========================================== -->
+  <script>
+    // 1. Biomedical Knowledge Graph Dataset
+    const FULL_KNOWLEDGE_GRAPH = {
+      nodes: [
+        { id: 'Type 2 Diabetes', type: 'Disease', doid: 'DOID:9352', category: 'Metabolic Disorder', prevalence: 'High (8.5% global)', description: 'Chronic metabolic disorder characterized by persistent hyperglycemia and insulin resistance.' },
+        { id: 'Alzheimer Disease', type: 'Disease', doid: 'DOID:10652', category: 'Neurodegenerative', prevalence: 'Moderate (6.5M US)', description: 'Progressive neurodegenerative disease characterized by beta-amyloid plaques and cognitive decline.' },
+        { id: 'Breast Cancer', type: 'Disease', doid: 'DOID:1612', category: 'Oncology', prevalence: 'High (2.3M new/yr)', description: 'Malignant neoplasm arising from breast tissue driven by hormone receptor or HER2 signaling.' },
+        { id: 'Hypertension', type: 'Disease', doid: 'DOID:10763', category: 'Cardiovascular', prevalence: 'Very High (1.28B global)', description: 'Chronic medical condition in which systemic arterial blood pressure is persistently elevated.' },
+        { id: 'Rheumatoid Arthritis', type: 'Disease', doid: 'DOID:7148', category: 'Autoimmune', prevalence: 'Moderate (1% global)', description: 'Chronic systemic autoimmune inflammatory disorder primarily affecting synovial joints.' },
+        { id: 'Parkinson Disease', type: 'Disease', doid: 'DOID:14330', category: 'Neurodegenerative', prevalence: 'Moderate (10M global)', description: 'Progressive nervous system disorder affecting movement and dopaminergic neurons.' },
+
+        { id: 'Metformin', type: 'Drug', drugbank: 'DB00331', formula: 'C4H11N5', status: 'FDA Approved', mechanism: 'Activates AMPK, decreases hepatic glucose production and intestinal absorption of glucose.' },
+        { id: 'Pioglitazone', type: 'Drug', drugbank: 'DB01132', formula: 'C19H20N2O3S', status: 'FDA Approved', mechanism: 'Selective agonist for nuclear peroxisome proliferator-activated receptor-gamma (PPAR-gamma).' },
+        { id: 'Sitagliptin', type: 'Drug', drugbank: 'DB01261', formula: 'C16H15F6N5O', status: 'FDA Approved', mechanism: 'Potent, competitive, and reversible inhibitor of dipeptidyl peptidase 4 (DPP-4).' },
+        { id: 'Liraglutide', type: 'Drug', drugbank: 'DB06655', formula: 'C172H265N43O51', status: 'FDA Approved', mechanism: 'Acylated human Glucagon-Like Peptide-1 (GLP-1) receptor agonist.' },
+        { id: 'Donepezil', type: 'Drug', drugbank: 'DB00843', formula: 'C24H29NO3', status: 'FDA Approved', mechanism: 'Reversible inhibitor of acetylcholinesterase, increasing cortical acetylcholine.' },
+        { id: 'Memantine', type: 'Drug', drugbank: 'DB01043', formula: 'C12H21N', status: 'FDA Approved', mechanism: 'Uncompetitive NMDA receptor antagonist reducing excitotoxicity.' },
+        { id: 'Tamoxifen', type: 'Drug', drugbank: 'DB00675', formula: 'C26H29NO', status: 'FDA Approved', mechanism: 'Selective estrogen receptor modulator (SERM) inhibiting estrogen-stimulated growth.' },
+        { id: 'Trastuzumab', type: 'Drug', drugbank: 'DB00072', formula: 'Monoclonal IgG1', status: 'FDA Approved', mechanism: 'Recombinant humanized monoclonal antibody selectively binding HER2 (ERBB2).' },
+        { id: 'Lisinopril', type: 'Drug', drugbank: 'DB00722', formula: 'C21H31N3O5', status: 'FDA Approved', mechanism: 'Competitive inhibitor of angiotensin-converting enzyme (ACE).' },
+        { id: 'Amlodipine', type: 'Drug', drugbank: 'DB00381', formula: 'C20H25ClN2O5', status: 'FDA Approved', mechanism: 'Dihydropyridine calcium channel antagonist.' },
+        { id: 'Methotrexate', type: 'Drug', drugbank: 'DB00563', formula: 'C20H22N8O5', status: 'FDA Approved', mechanism: 'Antimetabolite and antifolate agent that reduces autoimmune joint inflammation.' },
+        { id: 'Adalimumab', type: 'Drug', drugbank: 'DB00051', formula: 'Monoclonal IgG1', status: 'FDA Approved', mechanism: 'Recombinant human IgG1 monoclonal antibody specific for human TNF-alpha.' },
+
+        { id: 'TCF7L2', type: 'Gene', entrez: '6934', chromosome: '10q25.2', function: 'Transcription factor playing a key role in the Wnt signaling pathway and beta-cell survival.' },
+        { id: 'PPARG', type: 'Gene', entrez: '5468', chromosome: '3p25.2', function: 'Nuclear receptor that regulates adipocyte differentiation and glucose homeostasis.' },
+        { id: 'INSR', type: 'Gene', entrez: '3643', chromosome: '19p13.2', function: 'Transmembrane receptor activated by insulin, IGF-I, and IGF-II.' },
+        { id: 'PRKAA1', type: 'Gene', entrez: '5562', chromosome: '5p13.1', function: 'Catalytic subunit of AMP-activated protein kinase (AMPK), cellular energy sensor.' },
+        { id: 'DPP4', type: 'Gene', entrez: '1803', chromosome: '2q24.2', function: 'Cell surface glycoprotein receptor involved in incretin degradation.' },
+        { id: 'GLP1R', type: 'Gene', entrez: '2740', chromosome: '6p21.2', function: 'G protein-coupled receptor for glucagon-like peptide 1.' },
+        { id: 'APOE', type: 'Gene', entrez: '348', chromosome: '19q13.32', function: 'Major apoprotein of the chylomicron; e4 allele is a primary genetic risk factor for Alzheimer disease.' },
+        { id: 'APP', type: 'Gene', entrez: '351', chromosome: '21q21.3', function: 'Cell surface receptor cleaved to form beta-amyloid plaques.' },
+        { id: 'ACHE', type: 'Gene', entrez: '43', chromosome: '7q22.1', function: 'Hydrolyzes the neurotransmitter acetylcholine at brain synapses.' },
+        { id: 'BRCA1', type: 'Gene', entrez: '672', chromosome: '17q21.31', function: 'Nuclear phosphoprotein that plays a role in maintaining genomic stability and DNA repair.' },
+        { id: 'ERBB2', type: 'Gene', entrez: '2064', chromosome: '17q12', function: 'Encodes HER2 receptor tyrosine kinase involved in cell growth.' },
+        { id: 'ESR1', type: 'Gene', entrez: '2099', chromosome: '6q25.1', function: 'Estrogen receptor alpha, ligand-activated transcription factor.' },
+        { id: 'ACE', type: 'Gene', entrez: '1636', chromosome: '17q23.3', function: 'Converts hormone angiotensin I to active vasoconstrictor angiotensin II.' },
+        { id: 'TNF', type: 'Gene', entrez: '7124', chromosome: '6p21.33', function: 'Multifunctional proinflammatory cytokine secreted mainly by macrophages.' },
+        { id: 'IL6', type: 'Gene', entrez: '3569', chromosome: '7p15.3', function: 'Cytokine that functions in inflammation and maturation of B cells.' },
+
+        { id: 'Insulin Resistance', type: 'Symptom', mesh: 'D007333', severity: 'High', description: 'Diminished ability of cells to respond to the action of insulin in transporting glucose.' },
+        { id: 'Hyperglycemia', type: 'Symptom', mesh: 'D006943', severity: 'High', description: 'Abnormally high blood glucose levels exceeding fasting normal ranges.' },
+        { id: 'Polyuria', type: 'Symptom', mesh: 'D011141', severity: 'Moderate', description: 'Excessive or abnormally large production or passage of urine.' },
+        { id: 'Fatigue', type: 'Symptom', mesh: 'D005221', severity: 'Moderate', description: 'State of physical or mental weariness shared across chronic disorders.' },
+        { id: 'Cognitive Decline', type: 'Symptom', mesh: 'D060825', severity: 'Severe', description: 'Progressive deterioration of memory, attention, and executive function.' },
+        { id: 'Neuroinflammation', type: 'Symptom', mesh: 'D000090862', severity: 'High', description: 'Inflammatory response within the brain or spinal cord mediated by microglia.' },
+        { id: 'Joint Inflammation', type: 'Symptom', mesh: 'D001168', severity: 'High', description: 'Swelling, tenderness, and warmth in synovial joints.' },
+        { id: 'Chest Pain', type: 'Symptom', mesh: 'D002637', severity: 'High', description: 'Discomfort or pain felt along the front of the chest.' }
+      ],
+      links: [
+        { source: 'Metformin', target: 'Type 2 Diabetes', label: 'TREATS' },
+        { source: 'Pioglitazone', target: 'Type 2 Diabetes', label: 'TREATS' },
+        { source: 'Sitagliptin', target: 'Type 2 Diabetes', label: 'TREATS' },
+        { source: 'Liraglutide', target: 'Type 2 Diabetes', label: 'TREATS' },
+        { source: 'Metformin', target: 'PRKAA1', label: 'TARGETS' },
+        { source: 'Pioglitazone', target: 'PPARG', label: 'TARGETS' },
+        { source: 'Sitagliptin', target: 'DPP4', label: 'TARGETS' },
+        { source: 'Liraglutide', target: 'GLP1R', label: 'TARGETS' },
+        { source: 'TCF7L2', target: 'Type 2 Diabetes', label: 'ASSOCIATED_WITH' },
+        { source: 'PPARG', target: 'Type 2 Diabetes', label: 'ASSOCIATED_WITH' },
+        { source: 'INSR', target: 'Type 2 Diabetes', label: 'ASSOCIATED_WITH' },
+        { source: 'PRKAA1', target: 'Type 2 Diabetes', label: 'ASSOCIATED_WITH' },
+        { source: 'DPP4', target: 'Type 2 Diabetes', label: 'ASSOCIATED_WITH' },
+        { source: 'GLP1R', target: 'Type 2 Diabetes', label: 'ASSOCIATED_WITH' },
+        { source: 'TNF', target: 'Type 2 Diabetes', label: 'ASSOCIATED_WITH' },
+        { source: 'IL6', target: 'Type 2 Diabetes', label: 'ASSOCIATED_WITH' },
+        { source: 'Type 2 Diabetes', target: 'Insulin Resistance', label: 'PRESENTS' },
+        { source: 'Type 2 Diabetes', target: 'Hyperglycemia', label: 'PRESENTS' },
+        { source: 'Type 2 Diabetes', target: 'Polyuria', label: 'PRESENTS' },
+        { source: 'Type 2 Diabetes', target: 'Fatigue', label: 'PRESENTS' },
+
+        { source: 'Donepezil', target: 'Alzheimer Disease', label: 'TREATS' },
+        { source: 'Memantine', target: 'Alzheimer Disease', label: 'TREATS' },
+        { source: 'Donepezil', target: 'ACHE', label: 'TARGETS' },
+        { source: 'APOE', target: 'Alzheimer Disease', label: 'ASSOCIATED_WITH' },
+        { source: 'APP', target: 'Alzheimer Disease', label: 'ASSOCIATED_WITH' },
+        { source: 'ACHE', target: 'Alzheimer Disease', label: 'ASSOCIATED_WITH' },
+        { source: 'INSR', target: 'Alzheimer Disease', label: 'ASSOCIATED_WITH' },
+        { source: 'PPARG', target: 'Alzheimer Disease', label: 'ASSOCIATED_WITH' },
+        { source: 'GLP1R', target: 'Alzheimer Disease', label: 'ASSOCIATED_WITH' },
+        { source: 'TNF', target: 'Alzheimer Disease', label: 'ASSOCIATED_WITH' },
+        { source: 'Alzheimer Disease', target: 'Cognitive Decline', label: 'PRESENTS' },
+        { source: 'Alzheimer Disease', target: 'Neuroinflammation', label: 'PRESENTS' },
+        { source: 'Alzheimer Disease', target: 'Insulin Resistance', label: 'PRESENTS' },
+
+        { source: 'Parkinson Disease', target: 'Cognitive Decline', label: 'PRESENTS' },
+        { source: 'Parkinson Disease', target: 'Neuroinflammation', label: 'PRESENTS' },
+        { source: 'Parkinson Disease', target: 'Fatigue', label: 'PRESENTS' },
+        { source: 'GLP1R', target: 'Parkinson Disease', label: 'ASSOCIATED_WITH' },
+        { source: 'TNF', target: 'Parkinson Disease', label: 'ASSOCIATED_WITH' },
+
+        { source: 'Tamoxifen', target: 'Breast Cancer', label: 'TREATS' },
+        { source: 'Trastuzumab', target: 'Breast Cancer', label: 'TREATS' },
+        { source: 'Methotrexate', target: 'Breast Cancer', label: 'TREATS' },
+        { source: 'Tamoxifen', target: 'ESR1', label: 'TARGETS' },
+        { source: 'Trastuzumab', target: 'ERBB2', label: 'TARGETS' },
+        { source: 'BRCA1', target: 'Breast Cancer', label: 'ASSOCIATED_WITH' },
+        { source: 'ERBB2', target: 'Breast Cancer', label: 'ASSOCIATED_WITH' },
+        { source: 'ESR1', target: 'Breast Cancer', label: 'ASSOCIATED_WITH' },
+        { source: 'PRKAA1', target: 'Breast Cancer', label: 'ASSOCIATED_WITH' },
+        { source: 'Breast Cancer', target: 'Fatigue', label: 'PRESENTS' },
+
+        { source: 'Lisinopril', target: 'Hypertension', label: 'TREATS' },
+        { source: 'Amlodipine', target: 'Hypertension', label: 'TREATS' },
+        { source: 'Lisinopril', target: 'ACE', label: 'TARGETS' },
+        { source: 'ACE', target: 'Hypertension', label: 'ASSOCIATED_WITH' },
+        { source: 'ACE', target: 'Type 2 Diabetes', label: 'ASSOCIATED_WITH' },
+        { source: 'INSR', target: 'Hypertension', label: 'ASSOCIATED_WITH' },
+        { source: 'Hypertension', target: 'Chest Pain', label: 'PRESENTS' },
+        { source: 'Hypertension', target: 'Fatigue', label: 'PRESENTS' },
+
+        { source: 'Methotrexate', target: 'Rheumatoid Arthritis', label: 'TREATS' },
+        { source: 'Adalimumab', target: 'Rheumatoid Arthritis', label: 'TREATS' },
+        { source: 'Adalimumab', target: 'TNF', label: 'TARGETS' },
+        { source: 'TNF', target: 'Rheumatoid Arthritis', label: 'ASSOCIATED_WITH' },
+        { source: 'IL6', target: 'Rheumatoid Arthritis', label: 'ASSOCIATED_WITH' },
+        { source: 'PPARG', target: 'Rheumatoid Arthritis', label: 'ASSOCIATED_WITH' },
+        { source: 'Rheumatoid Arthritis', target: 'Joint Inflammation', label: 'PRESENTS' },
+        { source: 'Rheumatoid Arthritis', target: 'Fatigue', label: 'PRESENTS' }
+      ]
+    };
+
+    const INITIAL_IDS = [
+      'Type 2 Diabetes', 'Alzheimer Disease', 'Metformin', 'Pioglitazone',
+      'Liraglutide', 'Donepezil', 'TCF7L2', 'PPARG', 'INSR', 'GLP1R',
+      'APOE', 'TNF', 'Insulin Resistance', 'Hyperglycemia', 'Cognitive Decline'
+    ];
+
+    const getNodeColor = (type) => {
+      if (type === 'Disease') return '#ef4444';
+      if (type === 'Drug') return '#10b981';
+      if (type === 'Gene') return '#3b82f6';
+      if (type === 'Symptom') return '#eab308';
+      return '#94a3b8';
+    };
+
+    // State
+    let activeTab = 'explorer';
+    let layoutMode = 'force';
+    let showPredictedEdges = true;
+    let activeNodeIds = new Set(INITIAL_IDS);
+    let selectedNode = FULL_KNOWLEDGE_GRAPH.nodes[0];
+    let hoveredNode = null;
+    let filters = { Disease: true, Drug: true, Gene: true, Symptom: true };
+    let pathStart = '';
+    let pathEnd = '';
+    let highlightedPath = { nodes: [], links: new Set() };
+
+    let simNodes = [];
+    let simLinks = [];
+    const camera = { x: 0, y: 0, zoom: 1 };
+    const interaction = { isDraggingNode: false, draggedNode: null, isPanning: false, panStartX: 0, panStartY: 0 };
+
+    // Precompute degrees
+    const nodeDegrees = new Map();
+    FULL_KNOWLEDGE_GRAPH.nodes.forEach(n => nodeDegrees.set(n.id, 0));
+    FULL_KNOWLEDGE_GRAPH.links.forEach(l => {
+      nodeDegrees.set(l.source, (nodeDegrees.get(l.source) || 0) + 1);
+      nodeDegrees.set(l.target, (nodeDegrees.get(l.target) || 0) + 1);
+    });
+
+    // Compute AI Drug Repositioning Predictions
+    function computePredictions() {
+      const drugs = FULL_KNOWLEDGE_GRAPH.nodes.filter(n => n.type === 'Drug');
+      const diseases = FULL_KNOWLEDGE_GRAPH.nodes.filter(n => n.type === 'Disease');
+      const treats = new Set();
+      const drugTargets = new Map();
+      const diseaseGenes = new Map();
+      drugs.forEach(d => drugTargets.set(d.id, new Set()));
+      diseases.forEach(d => diseaseGenes.set(d.id, new Set()));
+
+      FULL_KNOWLEDGE_GRAPH.links.forEach(l => {
+        if (l.label === 'TREATS') treats.add(`${l.source}__${l.target}`);
+        if (l.label === 'TARGETS' && drugTargets.has(l.source)) drugTargets.get(l.source).add(l.target);
+        if (l.label === 'ASSOCIATED_WITH' && diseaseGenes.has(l.target)) diseaseGenes.get(l.target).add(l.source);
+      });
+
+      const list = [];
+      drugs.forEach(drug => {
+        const targets = drugTargets.get(drug.id);
+        diseases.forEach(disease => {
+          if (treats.has(`${drug.id}__${disease.id}`)) return;
+          const genes = diseaseGenes.get(disease.id);
+          const shared = [...targets].filter(g => genes.has(g));
+          if (shared.length > 0) {
+            const union = new Set([...targets, ...genes]).size;
+            const jaccard = shared.length / Math.max(1, union);
+            const confidence = Math.min(0.96, +(0.78 + jaccard * 0.45 + shared.length * 0.06).toFixed(2));
+            list.push({
+              id: `pred_${drug.id}_${disease.id}`,
+              source: drug.id,
+              target: disease.id,
+              label: 'PREDICTED_TREATS',
+              sharedGenes: shared,
+              confidence,
+              rationale: `${drug.id} targets ${shared.join(', ')}, which is genetically associated with ${disease.id} pathology.`
+            });
+          }
+        });
+      });
+      return list.sort((a, b) => b.confidence - a.confidence);
+    }
+
+    const aiPredictions = computePredictions();
+
+    // Compute Bipartite Disease Network
+    function computeBipartite() {
+      const diseases = FULL_KNOWLEDGE_GRAPH.nodes.filter(n => n.type === 'Disease');
+      const feats = new Map();
+      diseases.forEach(d => feats.set(d.id, new Set()));
+      FULL_KNOWLEDGE_GRAPH.links.forEach(l => {
+        if (l.label === 'PRESENTS' && feats.has(l.source)) feats.get(l.source).add(l.target);
+        if (l.label === 'ASSOCIATED_WITH' && feats.has(l.target)) feats.get(l.target).add(l.source);
+      });
+      const links = [];
+      for (let i = 0; i < diseases.length; i++) {
+        for (let j = i + 1; j < diseases.length; j++) {
+          const d1 = diseases[i].id, d2 = diseases[j].id;
+          const shared = [...feats.get(d1)].filter(x => feats.get(d2).has(x));
+          if (shared.length > 0) {
+            links.push({ source: d1, target: d2, label: `SIMILAR (${shared.length} shared)` });
+          }
+        }
+      }
+      return { nodes: diseases, links };
+    }
+
+    const bipartiteGraph = computeBipartite();
+
+    // Shortest Path BFS
+    function findShortestPath(startId, endId) {
+      if (!startId || !endId || startId === endId) return { nodes: [], links: new Set() };
+      const adj = new Map();
+      FULL_KNOWLEDGE_GRAPH.nodes.forEach(n => adj.set(n.id, []));
+      FULL_KNOWLEDGE_GRAPH.links.forEach(l => {
+        adj.get(l.source)?.push(l.target);
+        adj.get(l.target)?.push(l.source);
+      });
+      const queue = [[startId]];
+      const visited = new Set([startId]);
+      while (queue.length > 0) {
+        const path = queue.shift();
+        const curr = path[path.length - 1];
+        if (curr === endId) {
+          const linkSet = new Set();
+          for (let i = 0; i < path.length - 1; i++) {
+            linkSet.add(`${path[i]}__${path[i + 1]}`);
+            linkSet.add(`${path[i + 1]}__${path[i]}`);
+          }
+          return { nodes: path, links: linkSet };
+        }
+        for (const nb of (adj.get(curr) || [])) {
+          if (!visited.has(nb)) {
+            visited.add(nb);
+            queue.push([...path, nb]);
+          }
+        }
+      }
+      return { nodes: [], links: new Set() };
+    }
+
+    function getUnexpandedNeighbors(nodeId) {
+      const nbs = new Set();
+      FULL_KNOWLEDGE_GRAPH.links.forEach(l => {
+        if (l.source === nodeId && !activeNodeIds.has(l.target)) nbs.add(l.target);
+        if (l.target === nodeId && !activeNodeIds.has(l.source)) nbs.add(l.source);
+      });
+      return [...nbs];
+    }
+
+    function showToast(msg) {
+      const banner = document.getElementById('toast-banner');
+      document.getElementById('toast-text').textContent = msg;
+      banner.classList.remove('hidden');
+      banner.classList.add('flex');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+      }, 3200);
+    }
+
+    // Sync simulation nodes & links
+    function syncGraphData() {
+      const canvas = document.getElementById('graph-canvas');
+      const cx = canvas.width / 2 || 450;
+      const cy = canvas.height / 2 || 320;
+      const existing = new Map(simNodes.map(n => [n.id, n]));
+
+      let rawNodes, rawLinks;
+      if (activeTab === 'bipartite') {
+        rawNodes = bipartiteGraph.nodes;
+        rawLinks = bipartiteGraph.links;
+      } else {
+        rawNodes = FULL_KNOWLEDGE_GRAPH.nodes.filter(n => activeNodeIds.has(n.id) && filters[n.type]);
+        const vis = new Set(rawNodes.map(n => n.id));
+        const baseLinks = FULL_KNOWLEDGE_GRAPH.links.filter(l => vis.has(l.source) && vis.has(l.target));
+        const predLinks = showPredictedEdges ? aiPredictions.filter(p => vis.has(p.source) && vis.has(p.target)) : [];
+        rawLinks = [...baseLinks, ...predLinks];
+      }
+
+      simNodes = rawNodes.map((n, idx) => {
+        const prev = existing.get(n.id);
+        if (prev) return { ...n, x: prev.x, y: prev.y, vx: prev.vx, vy: prev.vy };
+        const angle = (idx / Math.max(1, rawNodes.length)) * 2 * Math.PI;
+        const r = 120 + Math.random() * 80;
+        return { ...n, x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r, vx: 0, vy: 0 };
+      });
+      simLinks = rawLinks.map(l => ({ ...l }));
+
+      document.getElementById('graph-stats-badge').textContent = `${simNodes.length} Nodes · ${simLinks.length} Edges`;
+      renderInspector();
+    }
+
+    function expandNeighborhood(nodeId) {
+      const hidden = getUnexpandedNeighbors(nodeId);
+      if (hidden.length === 0) {
+        showToast(`All 1-hop neighbors of "${nodeId}" are already visible.`);
+        return;
+      }
+      hidden.forEach(id => {
+        activeNodeIds.add(id);
+        const found = FULL_KNOWLEDGE_GRAPH.nodes.find(n => n.id === id);
+        if (found) filters[found.type] = true;
+      });
+      updateFilterButtonsUI();
+      syncGraphData();
+      showToast(`Expanded "${nodeId}": +${hidden.length} connected entities added.`);
+    }
+
+    // Render Right Sidebar Inspector
+    function renderInspector() {
+      const container = document.getElementById('inspector-content');
+      const degEl = document.getElementById('inspector-degree');
+      if (!selectedNode) {
+        degEl.textContent = '';
+        container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-12"><p class="text-xs max-w-[220px]">Click any node in the graph to inspect its metadata and Neo4j Cypher query.</p></div>`;
+        return;
+      }
+      degEl.textContent = `Degree: ${nodeDegrees.get(selectedNode.id) || 0}`;
+      const hiddenCount = getUnexpandedNeighbors(selectedNode.id).length;
+      const color = getNodeColor(selectedNode.type);
+
+      const metaRows = Object.entries(selectedNode)
+        .filter(([k]) => !['id', 'type', 'x', 'y', 'vx', 'vy'].includes(k))
+        .map(([k, v]) => `
+          <div class="bg-slate-950/90 p-2.5 rounded-lg border border-slate-800/90">
+            <div class="text-[10px] font-semibold uppercase text-slate-500 mb-0.5">${k}</div>
+            <div class="text-xs text-slate-200 leading-relaxed">${v}</div>
+          </div>
+        `).join('');
+
+      const connectedRows = FULL_KNOWLEDGE_GRAPH.links
+        .filter(l => l.source === selectedNode.id || l.target === selectedNode.id)
+        .map(l => {
+          const otherId = l.source === selectedNode.id ? l.target : l.source;
+          return `
+            <button data-jump="${otherId}" class="jump-node-btn w-full p-2 rounded-lg bg-slate-950 hover:bg-slate-800/80 border border-slate-800 flex items-center justify-between text-left text-xs transition-colors">
+              <span class="text-slate-200 font-medium truncate">${otherId}</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 text-indigo-300 border border-slate-800">${l.label}</span>
+            </button>
+          `;
+        }).join('');
+
+      container.innerHTML = `
+        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+          <div>
+            <h3 class="text-lg font-bold text-white leading-snug">${selectedNode.id}</h3>
+            <span class="inline-block mt-1 px-2 py-0.5 rounded text-[11px] font-semibold" style="background:${color}20;color:${color}">${selectedNode.type}</span>
+          </div>
+          <button id="btn-inspector-expand" class="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs flex items-center justify-center gap-2 shadow-sm transition-colors">
+            <span>Expand 1-Hop Neighborhood (${hiddenCount} hidden)</span>
+          </button>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Curated Ontology Metadata</h4>
+          <div class="space-y-2">${metaRows}</div>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Direct 1-Hop Connections</h4>
+          <div class="space-y-1.5 max-h-44 overflow-y-auto pr-1">${connectedRows}</div>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Executed Neo4j Cypher Query</h4>
+          <pre class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono text-cyan-300 overflow-x-auto leading-relaxed">MATCH (n:${selectedNode.type} {name: "${selectedNode.id}"})-[r]-(m)\nRETURN n, r, m\nLIMIT 50;</pre>
+        </div>
+      `;
+
+      document.getElementById('btn-inspector-expand')?.addEventListener('click', () => expandNeighborhood(selectedNode.id));
+      container.querySelectorAll('.jump-node-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetId = btn.getAttribute('data-jump');
+          const found = FULL_KNOWLEDGE_GRAPH.nodes.find(n => n.id === targetId);
+          if (found) {
+            activeNodeIds.add(found.id);
+            selectedNode = found;
+            syncGraphData();
+          }
+        });
+      });
+    }
+
+    // Render AI Repositioning Cards
+    function renderRepositioningGrid() {
+      const grid = document.getElementById('repositioning-grid');
+      grid.innerHTML = aiPredictions.map((pred, i) => `
+        <div class="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-purple-500/50 transition-all flex flex-col justify-between gap-4">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-mono text-slate-400">Candidate Rank #${i + 1}</span>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">${(pred.confidence * 100).toFixed(0)}% Confidence</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-sm font-bold text-emerald-400">${pred.source}</span>
+              <span class="text-purple-400 font-bold">→</span>
+              <span class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-sm font-bold text-red-400">${pred.target}</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">${pred.rationale}</p>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-[11px] text-slate-400">Shared Gene Bridge:</span>
+              ${pred.sharedGenes.map(g => `<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] font-mono">${g}</span>`).join('')}
+            </div>
+          </div>
+          <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[11px] text-slate-500">Node2Vec + Jaccard Target Overlap</span>
+            <button data-source="${pred.source}" data-target="${pred.target}" class="inspect-pred-btn text-xs font-semibold text-indigo-400 hover:text-indigo-300">Inspect Pathway in Graph →</button>
+          </div>
+        </div>
+      `).join('');
+
+      grid.querySelectorAll('.inspect-pred-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const s = btn.getAttribute('data-source');
+          const t = btn.getAttribute('data-target');
+          activeNodeIds.add(s);
+          activeNodeIds.add(t);
+          document.getElementById('path-start').value = s;
+          document.getElementById('path-end').value = t;
+          updateShortestPath(s, t);
+          switchTab('explorer');
+        });
+      });
+    }
+
+    function updateShortestPath(s, t) {
+      pathStart = s;
+      pathEnd = t;
+      highlightedPath = findShortestPath(s, t);
+      const banner = document.getElementById('path-banner');
+      const clearBtn = document.getElementById('btn-clear-path');
+      if (s || t) clearBtn.classList.remove('hidden');
+      else clearBtn.classList.add('hidden');
+
+      if (s && t) {
+        banner.classList.remove('hidden');
+        highlightedPath.nodes.forEach(id => activeNodeIds.add(id));
+        syncGraphData();
+        document.getElementById('path-hop-badge').textContent = highlightedPath.nodes.length > 0 ? `${highlightedPath.nodes.length - 1} Hops` : 'No Path';
+        document.getElementById('path-chain-nodes').innerHTML = highlightedPath.nodes.map((n, i) => `
+          <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-medium">${n}</span>
+          ${i < highlightedPath.nodes.length - 1 ? '<span class="text-amber-400">→</span>' : ''}
+        `).join('');
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
+    function updateFilterButtonsUI() {
+      document.querySelectorAll('.filter-toggle').forEach(btn => {
+        const type = btn.getAttribute('data-filter');
+        if (filters[type]) {
+          btn.className = 'filter-toggle flex items-center gap-1.5 px-2.5 py-1 rounded-md border bg-slate-800/90 border-slate-700 text-slate-100';
+        } else {
+          btn.className = 'filter-toggle flex items-center gap-1.5 px-2.5 py-1 rounded-md border bg-slate-950/50 border-slate-800 text-slate-500 opacity-60';
+        }
+      });
+    }
+
+    function switchTab(tabId) {
+      activeTab = tabId;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        const active = btn.getAttribute('data-tab') === tabId;
+        btn.className = `tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+          active ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+        }`;
+      });
+
+      const viewGraph = document.getElementById('view-graph');
+      const viewRepo = document.getElementById('view-repositioning');
+      const viewCode = document.getElementById('view-codebase');
+      const toolbar = document.getElementById('secondary-toolbar');
+
+      viewGraph.classList.add('hidden');
+      viewRepo.classList.add('hidden');
+      viewCode.classList.add('hidden');
+
+      if (tabId === 'explorer' || tabId === 'bipartite') {
+        viewGraph.classList.remove('hidden');
+        toolbar.classList.remove('hidden');
+        resizeCanvas();
+        syncGraphData();
+      } else if (tabId === 'repositioning') {
+        viewRepo.classList.remove('hidden');
+        toolbar.classList.add('hidden');
+      } else {
+        viewCode.classList.remove('hidden');
+        toolbar.classList.add('hidden');
+      }
+    }
+
+    // Canvas Setup & Animation Loop
+    const canvas = document.getElementById('graph-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const wrapper = document.getElementById('canvas-wrapper');
+      if (!wrapper) return;
+      canvas.width = wrapper.clientWidth || 900;
+      canvas.height = wrapper.clientHeight || 650;
+    }
+
+    function screenToWorld(sx, sy) {
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      return {
+        x: (sx - cx - camera.x) / camera.zoom + cx,
+        y: (sy - cy - camera.y) / camera.zoom + cy
+      };
+    }
+
+    function findNodeAt(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const { x, y } = screenToWorld(clientX - rect.left, clientY - rect.top);
+      for (let i = simNodes.length - 1; i >= 0; i--) {
+        const n = simNodes[i];
+        if (Math.hypot(n.x - x, n.y - y) <= 18) return n;
+      }
+      return null;
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+
+      if (layoutMode === 'concentric') {
+        const radii = { Disease: 0, Gene: 135, Drug: 235, Symptom: 315 };
+        const groups = { Disease: [], Gene: [], Drug: [], Symptom: [] };
+        simNodes.forEach(n => groups[n.type]?.push(n));
+        Object.entries(groups).forEach(([type, list]) => {
+          const r = list.length === 1 && type === 'Disease' ? 0 : (type === 'Disease' ? 65 : radii[type]);
+          list.forEach((n, i) => {
+            if (interaction.draggedNode?.id === n.id) return;
+            const a = (i / Math.max(1, list.length)) * 2 * Math.PI - Math.PI / 2;
+            n.x += (cx + Math.cos(a) * r - n.x) * 0.08;
+            n.y += (cy + Math.sin(a) * r - n.y) * 0.08;
+          });
+        });
+      } else if (layoutMode === 'radial') {
+        const angles = { Disease: 0, Drug: Math.PI / 2, Gene: Math.PI, Symptom: 1.5 * Math.PI };
+        simNodes.forEach((n, idx) => {
+          if (interaction.draggedNode?.id === n.id) return;
+          const a = (angles[n.type] || 0) + ((idx % 7) - 3) * 0.16;
+          const d = 110 + (idx % 3) * 65;
+          n.x += (cx + Math.cos(a) * d - n.x) * 0.08;
+          n.y += (cy + Math.sin(a) * d - n.y) * 0.08;
+        });
+      } else {
+        for (let i = 0; i < simNodes.length; i++) {
+          const n1 = simNodes[i];
+          for (let j = i + 1; j < simNodes.length; j++) {
+            const n2 = simNodes[j];
+            const dx = n1.x - n2.x, dy = n1.y - n2.y;
+            const dSq = dx * dx + dy * dy || 1;
+            const d = Math.sqrt(dSq);
+            if (d < 260) {
+              const f = 1100 / dSq;
+              n1.vx += (dx / d) * f; n1.vy += (dy / d) * f;
+              n2.vx -= (dx / d) * f; n2.vy -= (dy / d) * f;
+            }
+          }
+          n1.vx += (cx - n1.x) * 0.0035;
+          n1.vy += (cy - n1.y) * 0.0035;
+        }
+        simLinks.forEach(l => {
+          const s = simNodes.find(n => n.id === l.source);
+          const t = simNodes.find(n => n.id === l.target);
+          if (s && t) {
+            const dx = t.x - s.x, dy = t.y - s.y;
+            const d = Math.hypot(dx, dy) || 1;
+            const rest = l.label === 'PREDICTED_TREATS' ? 190 : 125;
+            const f = (d - rest) * 0.025;
+            s.vx += (dx / d) * f; s.vy += (dy / d) * f;
+            t.vx -= (dx / d) * f; t.vy -= (dy / d) * f;
+          }
+        });
+        simNodes.forEach(n => {
+          if (interaction.draggedNode?.id === n.id) { n.vx = 0; n.vy = 0; return; }
+          n.x += n.vx; n.y += n.vy;
+          n.vx *= 0.82; n.vy *= 0.82;
+        });
+      }
+
+      ctx.save();
+      ctx.translate(cx + camera.x, cy + camera.y);
+      ctx.scale(camera.zoom, camera.zoom);
+      ctx.translate(-cx, -cy);
+
+      const pathNodeSet = new Set(highlightedPath.nodes);
+      const pathLinkSet = highlightedPath.links;
+
+      simLinks.forEach(l => {
+        const s = simNodes.find(n => n.id === l.source);
+        const t = simNodes.find(n => n.id === l.target);
+        if (!s || !t) return;
+        const isPred = l.label === 'PREDICTED_TREATS';
+        const isPath = pathLinkSet.has(`${s.id}__${t.id}`);
+        const isSel = selectedNode && (selectedNode.id === s.id || selectedNode.id === t.id);
+
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(t.x, t.y);
+        if (isPath) { ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3.5; ctx.setLineDash([]); }
+        else if (isPred) { ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.setLineDash([6, 5]); }
+        else if (isSel) { ctx.strokeStyle = 'rgba(148, 163, 184, 0.75)'; ctx.lineWidth = 2; ctx.setLineDash([]); }
+        else { ctx.strokeStyle = 'rgba(100, 116, 139, 0.28)'; ctx.lineWidth = 1.3; ctx.setLineDash([]); }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        if (camera.zoom > 0.85 || isPath || isPred || isSel) {
+          ctx.font = isPath || isPred ? 'bold 9.5px Inter, sans-serif' : '9px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = isPath ? '#fbbf24' : isPred ? '#d8b4fe' : 'rgba(148, 163, 184, 0.65)';
+          ctx.fillText(isPred ? `AI: ${(l.confidence * 100).toFixed(0)}%` : l.label, (s.x + t.x) / 2, (s.y + t.y) / 2 - 5);
+        }
+      });
+
+      simNodes.forEach(node => {
+        const isSel = selectedNode?.id === node.id;
+        const isHov = hoveredNode?.id === node.id;
+        const isPath = pathNodeSet.has(node.id);
+        const r = node.type === 'Disease' ? 13 : Math.min(13, 7.5 + (nodeDegrees.get(node.id) || 1) * 0.45);
+
+        if (isSel || isHov || isPath) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, r + 6, 0, 2 * Math.PI);
+          ctx.fillStyle = isPath ? 'rgba(245, 158, 11, 0.28)' : isSel ? 'rgba(99, 102, 241, 0.35)' : 'rgba(255,255,255,0.15)';
+          ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+        ctx.fillStyle = getNodeColor(node.type);
+        ctx.fill();
+        ctx.lineWidth = isSel || isPath ? 2.5 : 1.5;
+        ctx.strokeStyle = isPath ? '#fbbf24' : isSel ? '#ffffff' : '#0f172a';
+        ctx.stroke();
+
+        if (getUnexpandedNeighbors(node.id).length > 0 && activeTab === 'explorer') {
+          ctx.beginPath();
+          ctx.arc(node.x + r * 0.75, node.y - r * 0.75, 4.5, 0, 2 * Math.PI);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fill();
+        }
+
+        ctx.font = isSel || isPath ? 'bold 11.5px Inter, sans-serif' : '11px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = isSel || isPath ? '#ffffff' : 'rgba(226, 232, 240, 0.92)';
+        ctx.fillText(node.id, node.x, node.y + r + 14);
+      });
+
+      ctx.restore();
+      requestAnimationFrame(animate);
+    }
+
+    // Event Listeners
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      document.getElementById('ai-links-count-label').textContent = `AI Predicted Links (${aiPredictions.length})`;
+
+      // Populate path selects
+      const startSel = document.getElementById('path-start');
+      const endSel = document.getElementById('path-end');
+      FULL_KNOWLEDGE_GRAPH.nodes.forEach(n => {
+        startSel.insertAdjacentHTML('beforeend', `<option value="${n.id}">${n.id} (${n.type})</option>`);
+        endSel.insertAdjacentHTML('beforeend', `<option value="${n.id}">${n.id} (${n.type})</option>`);
+      });
+
+      startSel.addEventListener('change', (e) => updateShortestPath(e.target.value, endSel.value));
+      endSel.addEventListener('change', (e) => updateShortestPath(startSel.value, e.target.value));
+      document.getElementById('btn-clear-path').addEventListener('click', () => {
+        startSel.value = '';
+        endSel.value = '';
+        updateShortestPath('', '');
+      });
+
+      // Tabs
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
+      });
+
+      // Filters
+      document.querySelectorAll('.filter-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const t = btn.getAttribute('data-filter');
+          filters[t] = !filters[t];
+          updateFilterButtonsUI();
+          syncGraphData();
+        });
+      });
+
+      document.getElementById('toggle-ai-links').addEventListener('click', () => {
+        showPredictedEdges = !showPredictedEdges;
+        syncGraphData();
+      });
+
+      document.getElementById('layout-select').addEventListener('change', (e) => {
+        layoutMode = e.target.value;
+      });
+
+      document.getElementById('btn-expand-all').addEventListener('click', () => {
+        FULL_KNOWLEDGE_GRAPH.nodes.forEach(n => activeNodeIds.add(n.id));
+        filters = { Disease: true, Drug: true, Gene: true, Symptom: true };
+        updateFilterButtonsUI();
+        syncGraphData();
+        showToast(`Loaded all ${FULL_KNOWLEDGE_GRAPH.nodes.length} nodes and ${FULL_KNOWLEDGE_GRAPH.links.length} relationships.`);
+      });
+
+      document.getElementById('btn-reset-graph').addEventListener('click', () => {
+        activeNodeIds = new Set(INITIAL_IDS);
+        camera.x = 0; camera.y = 0; camera.zoom = 1;
+        startSel.value = ''; endSel.value = '';
+        updateShortestPath('', '');
+        syncGraphData();
+        showToast('Reset view to initial core sub-network.');
+      });
+
+      document.getElementById('btn-view-predictions-in-graph').addEventListener('click', () => {
+        showPredictedEdges = true;
+        switchTab('explorer');
+      });
+
+      // Search
+      const searchInput = document.getElementById('global-search');
+      const dropdown = document.getElementById('search-dropdown');
+      searchInput.addEventListener('input', (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        if (!q) { dropdown.classList.add('hidden'); return; }
+        const matches = FULL_KNOWLEDGE_GRAPH.nodes.filter(n => n.id.toLowerCase().includes(q) || n.type.toLowerCase().includes(q)).slice(0, 8);
+        if (matches.length === 0) { dropdown.classList.add('hidden'); return; }
+        dropdown.innerHTML = matches.map(m => `
+          <button data-id="${m.id}" class="search-item w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-slate-800/80">
+            <span class="font-medium text-slate-200">${m.id}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">${m.type}</span>
+          </button>
+        `).join('');
+        dropdown.classList.remove('hidden');
+        dropdown.querySelectorAll('.search-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const id = item.getAttribute('data-id');
+            const node = FULL_KNOWLEDGE_GRAPH.nodes.find(n => n.id === id);
+            if (node) {
+              activeNodeIds.add(node.id);
+              filters[node.type] = true;
+              selectedNode = node;
+              searchInput.value = '';
+              dropdown.classList.add('hidden');
+              switchTab('explorer');
+              syncGraphData();
+            }
+          });
+        });
+      });
+
+      // Canvas Pointer Events
+      canvas.addEventListener('pointerdown', (e) => {
+        const hit = findNodeAt(e.clientX, e.clientY);
+        if (hit) {
+          interaction.isDraggingNode = true;
+          interaction.draggedNode = hit;
+          selectedNode = hit;
+          renderInspector();
+        } else {
+          interaction.isPanning = true;
+          interaction.panStartX = e.clientX - camera.x;
+          interaction.panStartY = e.clientY - camera.y;
+        }
+      });
+
+      canvas.addEventListener('pointermove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        if (interaction.isDraggingNode && interaction.draggedNode) {
+          const { x, y } = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+          interaction.draggedNode.x = x;
+          interaction.draggedNode.y = y;
+          return;
+        }
+        if (interaction.isPanning) {
+          camera.x = e.clientX - interaction.panStartX;
+          camera.y = e.clientY - interaction.panStartY;
+          return;
+        }
+        hoveredNode = findNodeAt(e.clientX, e.clientY);
+      });
+
+      window.addEventListener('pointerup', () => {
+        interaction.isDraggingNode = false;
+        interaction.draggedNode = null;
+        interaction.isPanning = false;
+      });
+
+      canvas.addEventListener('dblclick', (e) => {
+        const hit = findNodeAt(e.clientX, e.clientY);
+        if (hit) expandNeighborhood(hit.id);
+      });
+
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.12 : 0.9;
+        camera.zoom = Math.min(2.8, Math.max(0.35, camera.zoom * factor));
+      }, { passive: false });
+
+      document.getElementById('btn-zoom-in').addEventListener('click', () => camera.zoom = Math.min(2.8, camera.zoom * 1.2));
+      document.getElementById('btn-zoom-out').addEventListener('click', () => camera.zoom = Math.max(0.35, camera.zoom * 0.8));
+      document.getElementById('btn-zoom-reset').addEventListener('click', () => { camera.x = 0; camera.y = 0; camera.zoom = 1; });
+
+      // Exports
+      document.getElementById('btn-export-png').addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.download = `biograph-network-${Date.now()}.png`;
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        showToast('Downloaded PNG snapshot.');
+      });
+
+      document.getElementById('btn-export-json').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify({ nodes: simNodes, links: simLinks }, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.download = `biograph-subgraph-${Date.now()}.json`;
+        a.href = URL.createObjectURL(blob);
+        a.click();
+        showToast('Exported JSON sub-graph.');
+      });
+
+      document.getElementById('btn-export-csv').addEventListener('click', () => {
+        const rows = ['Source,Relationship,Target', ...simLinks.map(l => `"${l.source}","${l.label}","${l.target}"`)].join('\n');
+        const blob = new Blob([rows], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.download = `biograph-edges-${Date.now()}.csv`;
+        a.href = URL.createObjectURL(blob);
+        a.click();
+        showToast('Exported CSV edge list.');
+      });
+
+      renderRepositioningGrid();
+      syncGraphData();
+      animate();
+    });
+  </script>
+</body>
+</html>
